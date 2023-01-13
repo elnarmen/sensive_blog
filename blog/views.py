@@ -27,7 +27,6 @@ def serialize_tag(tag):
     }
 
 
-
 def index(request):
 
     most_popular_posts = Post.objects.popular().prefetch_related(

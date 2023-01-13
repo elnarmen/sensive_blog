@@ -85,7 +85,9 @@ class TagQuerySet(models.QuerySet):
 
 
 class Tag(models.Model):
+
     objects = TagQuerySet.as_manager()
+
     title = models.CharField('Тег', max_length=20, unique=True)
 
     def __str__(self):
