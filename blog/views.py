@@ -32,7 +32,8 @@ def index(request):
     most_popular_posts = Post.objects.popular().prefetch_related(
         Prefetch('author'),
         Prefetch(
-            'tags', queryset=Tag.objects.annotate(posts_count=Count('posts')))
+            'tags', queryset=Tag.objects.annotate(posts_count=Count('posts'))
+        )
     )[:5].fetch_with_comments_count()
 
     most_fresh_posts = Post.objects.order_by('-published_at').prefetch_related(
