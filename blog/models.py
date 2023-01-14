@@ -30,12 +30,14 @@ class PostQuerySet(models.QuerySet):
 
 
 class Post(models.Model):
-    objects = PostQuerySet.as_manager()
+
     title = models.CharField('Заголовок', max_length=200)
     text = models.TextField('Текст')
     slug = models.SlugField('Название в виде url', max_length=200)
     image = models.ImageField('Картинка')
     published_at = models.DateTimeField('Дата и время публикации')
+
+    objects = PostQuerySet.as_manager()
 
     author = models.ForeignKey(
         User,
@@ -52,16 +54,20 @@ class Post(models.Model):
         related_name='posts',
         verbose_name='Теги')
 
+    class Meta:
+        ordering = ['-published_at']
+        verbose_name = 'пост'
+        verbose_name_plural = 'посты'
+
+    class DoesNotExist(Exception):
+        pass
+
     def __str__(self):
         return self.title
 
     def get_absolute_url(self):
         return reverse('post_detail', args={'slug': self.slug})
 
-    class Meta:
-        ordering = ['-published_at']
-        verbose_name = 'пост'
-        verbose_name_plural = 'посты'
 
 
 class TagQuerySet(models.QuerySet):
@@ -73,23 +79,29 @@ class TagQuerySet(models.QuerySet):
 
 class Tag(models.Model):
 
-    objects = TagQuerySet.as_manager()
-
     title = models.CharField('Тег', max_length=20, unique=True)
 
-    def __str__(self):
-        return self.title
-
-    def clean(self):
-        self.title = self.title.lower()
-
-    def get_absolute_url(self):
-        return reverse('tag_filter', args={'tag_title': self.slug})
+    objects = TagQuerySet.as_manager()
 
     class Meta:
         ordering = ['title']
         verbose_name = 'тег'
         verbose_name_plural = 'теги'
+
+    class DoesNotExist(Exception):
+        pass
+
+    def __str__(self):
+        return self.title
+
+    def get_absolute_url(self):
+        return reverse('tag_filter', args={'tag_title': self.slug})
+
+    def clean(self):
+        self.title = self.title.lower()
+
+
+
 
 
 class Comment(models.Model):

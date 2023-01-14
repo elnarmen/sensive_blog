@@ -1,5 +1,5 @@
-from django.shortcuts import render
-from blog.models import Comment, Post, Tag
+from django.shortcuts import render, get_object_or_404
+from blog.models import Post, Tag
 from django.db.models import Count, Prefetch
 
 
@@ -29,15 +29,13 @@ def serialize_tag(tag):
 
 def index(request):
 
-    most_popular_posts = Post.objects.popular().prefetch_related(
-        Prefetch('author'),
+    most_popular_posts = Post.objects.popular().select_related('author').prefetch_related(
         Prefetch(
             'tags', queryset=Tag.objects.annotate(posts_count=Count('posts'))
         )
     )[:5].fetch_with_comments_count()
 
-    most_fresh_posts = Post.objects.order_by('-published_at').prefetch_related(
-        Prefetch('author'),
+    most_fresh_posts = Post.objects.order_by('-published_at').select_related('author').prefetch_related(
         Prefetch(
             'tags', queryset=Tag.objects.annotate(posts_count=Count('posts')))
     ).fetch_with_comments_count()[:5]
@@ -55,11 +53,14 @@ def index(request):
 
 
 def post_detail(request, slug):
-    post = Post.objects.popular().prefetch_related(
-        Prefetch('comments'),
-        Prefetch('author'),
-        Prefetch('tags', queryset=Tag.objects.annotate(posts_count=Count('posts')))
-    ).get(slug=slug)
+    try:
+        post = Post.objects.popular().select_related('author').prefetch_related(
+            Prefetch('comments'),
+            Prefetch('tags', queryset=Tag.objects.annotate(posts_count=Count('posts')))
+        ).get(slug=slug)
+    except Post.DoesNotExist:
+        raise Http404("Post does not exist")
+
     serialized_comments = []
     for comment in post.comments.prefetch_related('author').all():
         serialized_comments.append({
@@ -86,8 +87,7 @@ def post_detail(request, slug):
 
     most_popular_tags = Tag.objects.popular()[:5]
 
-    most_popular_posts = Post.objects.popular().prefetch_related(
-        Prefetch('author'),
+    most_popular_posts = Post.objects.popular().select_related('author').prefetch_related(
         Prefetch(
             'tags', queryset=Tag.objects.annotate(posts_count=Count('posts')))
     )[:5].fetch_with_comments_count()
@@ -103,19 +103,20 @@ def post_detail(request, slug):
 
 
 def tag_filter(request, tag_title):
-    tag = Tag.objects.popular().get(title=tag_title)
+    try:
+        tag = Tag.objects.popular().get(title=tag_title)
+    except Tag.DoesNotExist:
+        raise Http404("Tag does not exist")
 
     most_popular_tags = Tag.objects.popular()[:5]
 
-    most_popular_posts = Post.objects.popular().prefetch_related(
-        Prefetch('author'),
+    most_popular_posts = Post.objects.popular().select_related('author').prefetch_related(
         Prefetch(
             'tags', queryset=Tag.objects.annotate(posts_count=Count('posts')),
         )).fetch_with_comments_count()[:5]
 
-    related_posts = tag.posts.prefetch_related(
+    related_posts = tag.posts.select_related('author').prefetch_related(
         Prefetch('tags', queryset=Tag.objects.annotate(posts_count=Count('posts'))),
-        Prefetch('author')
     ).fetch_with_comments_count()[:20]
 
     context = {
