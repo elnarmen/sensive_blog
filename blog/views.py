@@ -1,6 +1,7 @@
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render
 from blog.models import Post, Tag
 from django.db.models import Count, Prefetch
+from django.http import Http404
 
 
 def serialize_post(post):
